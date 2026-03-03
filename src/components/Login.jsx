@@ -20,8 +20,15 @@ const Login = () => {
       setLoading(true);
       await signInWithGoogle();
       navigate("/", { replace: true });
-    } catch {
-      setError("Unable to sign in. Please try again.");
+    } catch (err) {
+      console.error("Google sign-in error:", err);
+      if (err?.code === "auth/unauthorized-domain") {
+        setError("This domain is not authorized. Add it in Firebase Console → Authentication → Settings → Authorized domains.");
+      } else if (err?.code === "auth/popup-closed-by-user") {
+        setError("Sign-in popup was closed. Please try again.");
+      } else {
+        setError(err?.message || "Unable to sign in. Please try again.");
+      }
     } finally {
       setLoading(false);
     }
