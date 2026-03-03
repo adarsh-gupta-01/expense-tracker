@@ -516,6 +516,52 @@ Add secrets to GitHub repo Settings > Secrets.
 
 ---
 
+## 🚀 GitHub Auto-Deployment Setup (Recommended)
+
+Your code is now on GitHub! Set up automatic deployments so every push to main branch automatically deploys to Vercel.
+
+### Step 1: Connect GitHub Repo to Vercel
+
+1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
+2. Click on your **expense-tracker** project
+3. Go to **Settings** > **Git**
+4. Click **Connect Git Repository**
+5. Select your GitHub repo: `adarsh-gupta-01/expense-tracker`
+6. Click **Connect**
+
+### Step 2: Verify Environment Variables
+
+1. Go to **Settings** > **Environment Variables**
+2. Make sure all Firebase variables are set:
+   - `VITE_FIREBASE_API_KEY`
+   - `VITE_FIREBASE_AUTH_DOMAIN`
+   - `VITE_FIREBASE_PROJECT_ID`
+   - `VITE_FIREBASE_STORAGE_BUCKET`
+   - `VITE_FIREBASE_MESSAGING_SENDER_ID`
+   - `VITE_FIREBASE_APP_ID`
+
+### Step 3: Done! ✅
+
+Now every time you:
+- **Push to main branch** → Vercel auto-deploys production
+- **Create a pull request** → Vercel creates preview deployment
+- **Merge PR to main** → Vercel deploys to production
+
+### Test It
+
+1. Make a change locally (e.g., update a comment)
+2. Commit and push:
+   ```bash
+   git add .
+   git commit -m "Your change description"
+   git push origin main
+   ```
+3. Watch Vercel deploy automatically at [Vercel Dashboard](https://vercel.com/dashboard)
+
+**Your deployed app:** https://expense-tracker-blond-alpha-71.vercel.app/
+
+---
+
 ## ✅ Quick Deploy Checklist
 
 **Firebase Hosting (Recommended):**
@@ -526,7 +572,7 @@ npm run build
 firebase deploy --only hosting
 ```
 
-**Vercel:**
+**Vercel (Manual - Already Set Up):**
 ```bash
 npm install -g vercel
 vercel --prod
