@@ -2,200 +2,265 @@ import jsPDF from 'jspdf';
 import 'jspdf-autotable';
 import { format } from 'date-fns';
 
+// ── Palette  (near-monochromatic + single indigo accent) ──────────────────────
+const C = {
+  ink:      [15,  23,  42],   // slate-900  – headings & strong text
+  body:     [51,  65,  85],   // slate-700  – body copy
+  muted:    [100, 116, 139],  // slate-500  – labels / metadata
+  rule:     [203, 213, 225],  // slate-300  – borders / dividers
+  surface:  [248, 250, 252],  // slate-50   – alt rows / card fills
+  accent:   [79,  70, 229],   // indigo-600 – ONLY accent
+  accentBg: [238, 242, 255],  // indigo-50  – pill / badge bg
+  white:    [255, 255, 255],
+};
+
+// ── Page geometry ─────────────────────────────────────────────────────────────
+const PW = 210;          // A4 width  (mm)
+const PH = 297;          // A4 height (mm)
+const ML = 18;           // left margin
+const MR = 18;           // right margin
+const CW = PW - ML - MR; // usable content width
+
+// ── Micro-utilities ───────────────────────────────────────────────────────────
+const INR = (n) =>
+  `Rs. ${new Intl.NumberFormat('en-IN', { maximumFractionDigits: 0 }).format(n || 0)}`;
+
+const hRule = (doc, y, color = C.rule, lw = 0.2) => {
+  doc.setLineWidth(lw);
+  doc.setDrawColor(...color);
+  doc.line(ML, y, PW - MR, y);
+};
+
+const sectionLabel = (doc, text, y) => {
+  doc.setFontSize(7.5);
+  doc.setFont(undefined, 'bold');
+  doc.setTextColor(...C.accent);
+  doc.text(text.toUpperCase(), ML, y);
+  hRule(doc, y + 2.5, C.accent, 0.35);
+  return y + 9;
+};
+
+const stampFooter = (doc, pageNum, total, monthYear) => {
+  const y = PH - 10;
+  hRule(doc, y - 3.5);
+  doc.setFontSize(7);
+  doc.setFont(undefined, 'normal');
+  doc.setTextColor(...C.muted);
+  doc.text(`Expense Report  ·  ${monthYear}`, ML, y);
+  doc.text(`Page ${pageNum} / ${total}`, PW / 2, y, { align: 'center' });
+  doc.text(
+    `Generated ${format(new Date(), 'dd MMM yyyy, hh:mm a')}`,
+    PW - MR, y, { align: 'right' }
+  );
+};
+
+// ── Main export ───────────────────────────────────────────────────────────────
 export const generatePDF = async (expenses, selectedMonth) => {
   try {
-    // Create new PDF document
-    const doc = new jsPDF();
-    
+    const doc       = new jsPDF({ unit: 'mm', format: 'a4' });
     const monthYear = format(selectedMonth, 'MMMM yyyy');
-    
-    const expenseOnly = expenses.filter((entry) => (entry.recordType || 'expense') === 'expense');
-    const lendOnly = expenses.filter((entry) => (entry.recordType || 'expense') === 'lend');
-    const borrowOnly = expenses.filter((entry) => (entry.recordType || 'expense') === 'borrow');
 
-    // Calculate totals
-    const totalAmount = expenseOnly.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0);
-    const totalLent = lendOnly.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0);
-    const totalBorrowed = borrowOnly.reduce((sum, exp) => sum + parseFloat(exp.amount || 0), 0);
-    
-    // Category breakdown
-    const categoryTotals = {};
-    expenseOnly.forEach((expense) => {
-      const category = expense.category;
-      const amount = parseFloat(expense.amount) || 0;
-      
-      if (categoryTotals[category]) {
-        categoryTotals[category] += amount;
-      } else {
-        categoryTotals[category] = amount;
-      }
+    // Partition
+    const expOnly  = expenses.filter((e) => (e.recordType || 'expense') === 'expense');
+    const lendOnly = expenses.filter((e) => (e.recordType || 'expense') === 'lend');
+    const borrOnly = expenses.filter((e) => (e.recordType || 'expense') === 'borrow');
+
+    const totExp  = expOnly.reduce( (s, e) => s + parseFloat(e.amount || 0), 0);
+    const totLent = lendOnly.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+    const totBorr = borrOnly.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+
+    const catTotals = {};
+    expOnly.forEach((e) => {
+      const k = e.category || 'Other';
+      catTotals[k] = (catTotals[k] || 0) + (parseFloat(e.amount) || 0);
     });
 
-    // Helper function to format currency
-    const formatCurrency = (amount) => {
-      const formatted = new Intl.NumberFormat('en-IN', {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }).format(amount || 0);
-      return `₹${formatted}`;
-    };
+    // ── HEADER ───────────────────────────────────────────────────────────────
+    // 3 mm indigo top bar
+    doc.setFillColor(...C.accent);
+    doc.rect(0, 0, PW, 3, 'F');
 
-    // Header
-    doc.setFontSize(20);
+    let y = 18;
+
+    // Title
+    doc.setFontSize(17);
     doc.setFont(undefined, 'bold');
-    doc.text('Expense Report', 14, 20);
-    
-    doc.setFontSize(12);
+    doc.setTextColor(...C.ink);
+    doc.text('Expense Report', ML, y);
+
+    // Month pill (top-right)
+    const pillW = 36;
+    doc.setFillColor(...C.accentBg);
+    doc.setDrawColor(...C.accent);
+    doc.setLineWidth(0.3);
+    doc.roundedRect(PW - MR - pillW, y - 6.5, pillW, 8.5, 2, 2, 'FD');
+    doc.setFontSize(8);
+    doc.setFont(undefined, 'bold');
+    doc.setTextColor(...C.accent);
+    doc.text(monthYear, PW - MR - pillW / 2, y - 1.2, { align: 'center' });
+
+    // Sub-line
+    y += 5.5;
+    doc.setFontSize(8.5);
     doc.setFont(undefined, 'normal');
-    doc.text(monthYear, 14, 28);
-    
-    // Draw a line
-    doc.setLineWidth(0.5);
-    doc.line(14, 32, 196, 32);
+    doc.setTextColor(...C.muted);
+    doc.text(`${expenses.length} transactions recorded`, ML, y);
 
-    // Summary Section
-    let yPos = 42;
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('Summary', 14, yPos);
-    
-    yPos += 10;
-    doc.setFontSize(11);
-    doc.setFont(undefined, 'normal');
-    doc.text(`Total Expenses: ${formatCurrency(totalAmount)}`, 14, yPos);
+    y += 7;
+    hRule(doc, y);
 
-    yPos += 6;
-    doc.text(`Total Lent: ${formatCurrency(totalLent)}`, 14, yPos);
+    // ── SUMMARY CARDS ────────────────────────────────────────────────────────
+    y += 10;
+    y = sectionLabel(doc, 'Summary', y);
 
-    yPos += 6;
-    doc.text(`Total Borrowed: ${formatCurrency(totalBorrowed)}`, 14, yPos);
-    
-    yPos += 6;
-    doc.text(`Total Transactions: ${expenses.length}`, 14, yPos);
-    
-    yPos += 6;
-    doc.text(`Report Generated: ${format(new Date(), 'dd MMM yyyy, hh:mm a')}`, 14, yPos);
+    const stats = [
+      { label: 'Total Expenses', value: INR(totExp),           note: `${expOnly.length} entries`  },
+      { label: 'Total Lent',     value: INR(totLent),          note: `${lendOnly.length} entries` },
+      { label: 'Total Borrowed', value: INR(totBorr),          note: `${borrOnly.length} entries` },
+      { label: 'Net Balance',    value: INR(totLent - totBorr), note: totLent >= totBorr ? 'net receivable' : 'net payable' },
+    ];
 
-    // Category Breakdown Section
-    yPos += 15;
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('Category Breakdown', 14, yPos);
-    
-    yPos += 8;
-    
-    // Category table
-    const categoryRows = Object.entries(categoryTotals).map(([category, amount]) => {
-      const percentage = ((amount / totalAmount) * 100).toFixed(1);
-      return [
-        category,
-        formatCurrency(amount),
-        `${percentage}%`
-      ];
+    const colW = (CW - 6) / 4;
+
+    stats.forEach((s, i) => {
+      const x = ML + i * (colW + 2);
+
+      // Card background + border
+      doc.setFillColor(...C.surface);
+      doc.setDrawColor(...C.rule);
+      doc.setLineWidth(0.2);
+      doc.roundedRect(x, y, colW, 19, 1.5, 1.5, 'FD');
+
+      // Label
+      doc.setFontSize(7);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(...C.muted);
+      doc.text(s.label, x + colW / 2, y + 5.5, { align: 'center' });
+
+      // Value
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'bold');
+      doc.setTextColor(...C.ink);
+      doc.text(s.value, x + colW / 2, y + 12.5, { align: 'center' });
+
+      // Note
+      doc.setFontSize(6.5);
+      doc.setFont(undefined, 'normal');
+      doc.setTextColor(...C.muted);
+      doc.text(s.note, x + colW / 2, y + 17, { align: 'center' });
     });
+
+    y += 27;
+
+    // ── CATEGORY BREAKDOWN ───────────────────────────────────────────────────
+    y = sectionLabel(doc, 'Category Breakdown', y);
+
+    const sortedCats = Object.entries(catTotals).sort((a, b) => b[1] - a[1]);
+    const catRows    = sortedCats.length
+      ? sortedCats.map(([cat, amt]) => [
+          cat,
+          INR(amt),
+          totExp > 0 ? `${((amt / totExp) * 100).toFixed(1)}%` : '—',
+        ])
+      : [['No expense records', '—', '—']];
 
     doc.autoTable({
-      startY: yPos,
-      head: [['Category', 'Amount', 'Percentage']],
-      body: categoryRows.length > 0 ? categoryRows : [['No expense records', '-', '-']],
-      theme: 'grid',
+      startY: y,
+      head: [['Category', 'Amount', 'Share']],
+      body: catRows,
+      theme: 'plain',
+      margin: { left: ML, right: MR },
       headStyles: {
-        fillColor: [14, 165, 233],
-        fontSize: 10,
-        fontStyle: 'bold'
+        fillColor:   C.ink,
+        textColor:   C.white,
+        fontStyle:   'bold',
+        fontSize:    8,
+        cellPadding: { top: 3.5, bottom: 3.5, left: 5, right: 5 },
       },
-      styles: {
-        fontSize: 9
+      bodyStyles: {
+        fontSize:    8.5,
+        textColor:   C.body,
+        cellPadding: { top: 3, bottom: 3, left: 5, right: 5 },
       },
+      alternateRowStyles: { fillColor: C.surface },
       columnStyles: {
-        1: { halign: 'right' },
-        2: { halign: 'right' }
-      }
+        0: { cellWidth: 'auto' },
+        1: { halign: 'right', fontStyle: 'bold', textColor: C.ink },
+        2: { halign: 'right', textColor: C.muted, cellWidth: 22 },
+      },
+      tableLineColor: C.rule,
+      tableLineWidth: 0.15,
     });
 
-    // Expense Details Section
-    yPos = doc.lastAutoTable.finalY + 15;
-    
-    // Check if we need a new page
-    if (yPos > 250) {
-      doc.addPage();
-      yPos = 20;
-    }
-    
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('Expense Details', 14, yPos);
-    
-    yPos += 8;
+    // ── TRANSACTION DETAILS ──────────────────────────────────────────────────
+    y = doc.lastAutoTable.finalY + 14;
+    if (y > 230) { doc.addPage(); y = 20; }
 
-    // Prepare expense rows
-    const expenseRows = expenses.map((expense) => {
-      return [
-        format(new Date(expense.date), 'dd MMM yyyy'),
-        (expense.recordType || 'expense').toUpperCase(),
-        expense.category,
-        expense.counterparty || '-',
-        expense.description || '-',
-        formatCurrency(expense.amount)
-      ];
-    });
+    y = sectionLabel(doc, 'All Transactions', y);
 
-    // Expense details table
+    const txRows = expenses.map((e) => [
+      format(new Date(e.date), 'dd MMM yyyy'),
+      (e.recordType || 'expense').toUpperCase(),
+      e.category      || '—',
+      e.counterparty  || '—',
+      e.description   || '—',
+      INR(e.amount),
+    ]);
+
     doc.autoTable({
-      startY: yPos,
+      startY: y,
       head: [['Date', 'Type', 'Category', 'Person', 'Description', 'Amount']],
-      body: expenseRows,
-      theme: 'striped',
+      body: txRows,
+      theme: 'plain',
+      margin: { left: ML, right: MR },
       headStyles: {
-        fillColor: [14, 165, 233],
-        fontSize: 9,
-        fontStyle: 'bold'
+        fillColor:   C.ink,
+        textColor:   C.white,
+        fontStyle:   'bold',
+        fontSize:    8,
+        cellPadding: { top: 3.5, bottom: 3.5, left: 5, right: 5 },
       },
-      styles: {
-        fontSize: 8,
-        cellPadding: 3
+      bodyStyles: {
+        fontSize:    8,
+        textColor:   C.body,
+        cellPadding: { top: 3, bottom: 3, left: 5, right: 5 },
       },
+      alternateRowStyles: { fillColor: C.surface },
       columnStyles: {
-        0: { cellWidth: 24 },
+        0: { cellWidth: 25 },
         1: { cellWidth: 20 },
-        2: { cellWidth: 24 },
+        2: { cellWidth: 28 },
         3: { cellWidth: 28 },
-        4: { cellWidth: 62 },
-        5: { halign: 'right', cellWidth: 24 }
-      }
+        4: { cellWidth: 'auto' },
+        5: { halign: 'right', fontStyle: 'bold', textColor: C.ink, cellWidth: 26 },
+      },
+      tableLineColor: C.rule,
+      tableLineWidth: 0.15,
+      didParseCell(data) {
+        if (data.section !== 'body' || data.column.index !== 1) return;
+        const v = data.cell.raw;
+        data.cell.styles.fontStyle = 'bold';
+        data.cell.styles.fontSize  = 7;
+        data.cell.styles.textColor =
+          v === 'LEND'   ? [146,  64,  14] :  // amber-800 – earthy, warm
+          v === 'BORROW' ? [153,  27,  27] :  // red-800   – clear warning
+                           C.accent;           // indigo    – standard expense
+      },
     });
 
-    // Footer
-    const finalY = doc.lastAutoTable.finalY;
-    if (finalY > 260) {
-      doc.addPage();
-    }
-    
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
+    // ── FOOTER ON EVERY PAGE ─────────────────────────────────────────────────
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
       doc.setPage(i);
-      doc.setFontSize(8);
-      doc.setTextColor(128);
-      doc.text(
-        `Page ${i} of ${pageCount}`,
-        doc.internal.pageSize.width / 2,
-        doc.internal.pageSize.height - 10,
-        { align: 'center' }
-      );
-      doc.text(
-        'Generated by Expense Tracker',
-        14,
-        doc.internal.pageSize.height - 10
-      );
+      stampFooter(doc, i, totalPages, monthYear);
     }
 
-    // Save PDF
-    const fileName = `Expense_Report_${format(selectedMonth, 'MMM_yyyy')}.pdf`;
-    doc.save(fileName);
-    
+    // ── SAVE ─────────────────────────────────────────────────────────────────
+    doc.save(`Expense_Report_${format(selectedMonth, 'MMM_yyyy')}.pdf`);
     return true;
-  } catch (error) {
-    console.error('Error generating PDF:', error);
-    throw error;
+
+  } catch (err) {
+    console.error('Error generating PDF:', err);
+    throw err;
   }
 };
