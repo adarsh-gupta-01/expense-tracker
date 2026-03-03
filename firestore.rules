@@ -1,0 +1,60 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isAuthenticated() && request.auth.uid == uid;
+    }
+
+    function isValidRole(role) {
+      return role in ['user', 'viewer', 'admin'];
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+
+      allow create: if isOwner(userId)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.email == request.auth.token.email
+        && isValidRole(request.resource.data.role)
+        && request.resource.data.viewerEmails is list;
+
+      allow update: if isOwner(userId)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.email == resource.data.email
+        && isValidRole(request.resource.data.role)
+        && request.resource.data.viewerEmails is list;
+
+      allow delete: if false;
+    }
+
+    match /expenses/{expenseId} {
+      allow read: if isAuthenticated()
+        && (
+          (resource.data.ownerUid == request.auth.uid)
+          || (request.auth.token.email in resource.data.accessEmails)
+        );
+
+      allow create: if isAuthenticated()
+        && request.resource.data.keys().hasAll([
+          'amount', 'category', 'date', 'createdBy', 'createdAt', 'ownerUid', 'accessEmails', 'recordType', 'counterparty'
+        ])
+        && request.resource.data.amount is number
+        && request.resource.data.amount > 0
+        && request.resource.data.category is string
+        && request.resource.data.date is string
+        && request.resource.data.recordType in ['expense', 'lend', 'borrow']
+        && request.resource.data.counterparty is string
+        && request.resource.data.createdBy == request.auth.uid
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.accessEmails is list
+        && request.auth.token.email in request.resource.data.accessEmails;
+
+      allow update, delete: if isAuthenticated()
+        && resource.data.ownerUid == request.auth.uid;
+    }
+  }
+}
