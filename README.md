@@ -1,302 +1,229 @@
-# Expense Tracker
+# 💰 Expense Tracker
 
-A production-ready web application for personal expense tracking with real-time updates, role-based access control, analytics, and PDF export capabilities.
+A modern, full-featured expense tracking web app built with React and Firebase. Track spending, split bills with family, visualize analytics, upload profile photos, and export PDF reports — all in a clean, responsive interface.
 
-## 🚀 Features
+> **Live Demo**: Deployed on [Vercel](https://vercel.com) with auto-deploy from GitHub
 
-- **Real-time Updates**: Expenses update instantly across all devices using Firebase Firestore
-- **Role-Based Access**: Admin can manage expenses, Viewer can only view
-- **Dashboard**: Monthly overview with statistics and breakdowns
-- **Analytics**: Visual charts (Pie & Bar) for spending insights
-- **PDF Export**: Generate monthly expense reports
-- **Mobile Responsive**: Works seamlessly on all devices
-- **Secure Authentication**: Firebase Authentication with role management
+---
 
-## 📋 Tech Stack
+## ✨ Features
 
-- **Frontend**: React 18 with Vite
-- **Styling**: Tailwind CSS
-- **Charts**: Chart.js with react-chartjs-2
-- **Backend**: Firebase (Firestore + Authentication)
-- **PDF Generation**: jsPDF with autotable
-- **Routing**: React Router v6
-- **Date Handling**: date-fns
+### 🔐 Authentication
+- **Google Sign-In** — One-click login via Google OAuth (no email/password forms)
+- **Auto Profile Creation** — New users get a Firestore profile on first sign-in
+- **Role-Based Access** — `admin` (full access) and `viewer` (read-only) roles
+- **Protected Routes** — Unauthenticated users are redirected to login
 
-## 🛠️ Installation
+### 📊 Dashboard
+- Monthly expense overview with real-time Firestore updates
+- Today's spending, monthly total, and category-wise breakdown
+- Chronological expense list with quick filtering
+- Month navigation to browse past records
+
+### ➕ Add Record
+- Quick expense entry with amount, category, description, and date
+- Expense types: **Personal**, **Lent**, **Borrowed**
+- Form validation and instant success feedback
+- Categories: Food, Travel, Recharge, Shopping, Other
+
+### 📈 Analytics
+- **Pie Chart** — Category-wise spending distribution
+- **Bar Chart** — Daily spending trends
+- Month selector for historical analysis
+- Summary table with detailed breakdown
+
+### 📄 PDF Export
+- Generate professional monthly expense reports
+- Includes all expense details, category totals, and summary
+- Powered by jsPDF + AutoTable
+
+### 👥 Sharing & Collaboration
+- **Share Expenses** — Share your expense data with other users by email
+- **Shared With Me** — View expenses shared by family/friends
+- Real-time sync across all shared users
+
+### 👤 Profile
+- **Profile Photo Upload** — Click avatar to upload a photo (compressed & stored in Firestore)
+- **Display Name** — Editable name shown across the app
+- Email and role info display
+
+### 🧭 Sidebar & Navigation
+- **Desktop** — Static sidebar with logo, user avatar, name, email, role, and nav links
+- **Mobile** — Hamburger menu with slide-in sidebar
+- Profile photo displayed in both mobile header and sidebar
+- **Logout Confirmation** — Modal prompt before signing out
+- Red hover effect on logout button
+
+### 🎨 UI/UX
+- Clean white + gray design with Google-style login button
+- Custom brand logo (responsive across all breakpoints)
+- Smooth animations and transitions
+- Fully responsive — works on mobile, tablet, and desktop
+- Inter font for modern typography
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Framework** | React 18 + Vite |
+| **Styling** | Tailwind CSS |
+| **Auth** | Firebase Authentication (Google OAuth) |
+| **Database** | Cloud Firestore (real-time) |
+| **Charts** | Chart.js + react-chartjs-2 |
+| **PDF** | jsPDF + jspdf-autotable |
+| **Icons** | react-icons (Font Awesome) |
+| **Routing** | React Router v6 |
+| **Dates** | date-fns |
+| **Hosting** | Vercel (auto-deploy from GitHub) |
+
+---
+
+## 📁 Project Structure
+
+```
+expense/
+├── public/
+├── src/
+│   ├── components/
+│   │   ├── Login.jsx          # Google sign-in page
+│   │   ├── Dashboard.jsx      # Main dashboard with expense list
+│   │   ├── AddExpense.jsx     # Add new expense form
+│   │   ├── Analytics.jsx      # Charts and visual insights
+│   │   ├── SharingSettings.jsx # Share expenses with others
+│   │   ├── SharedWithMe.jsx   # View shared expenses
+│   │   ├── Profile.jsx        # Profile photo upload + name edit
+│   │   ├── Sidebar.jsx        # Responsive sidebar navigation
+│   │   ├── ProtectedRoute.jsx # Auth guard wrapper
+│   │   └── logo.png           # Brand logo
+│   ├── context/
+│   │   └── AuthContext.jsx     # Global auth state + profile management
+│   ├── config/
+│   │   └── firebase.js         # Firebase initialization
+│   └── App.jsx                 # Routes and layout
+├── vercel.json                 # SPA rewrite rules for Vercel
+├── package.json
+└── .env                        # Firebase config (not committed)
+```
+
+---
+
+## 🚀 Getting Started
 
 ### Prerequisites
 
-- Node.js (v16 or higher)
-- npm or yarn
-- Firebase account
+- Node.js v16+
+- Firebase project with **Authentication** and **Firestore** enabled
+- Google sign-in provider enabled in Firebase
 
-### Step 1: Clone and Install
+### 1. Clone & Install
 
 ```bash
-# Navigate to project directory
-cd expense
-
-# Install dependencies
+git clone https://github.com/adarsh-gupta-01/expense-tracker.git
+cd expense-tracker
 npm install
 ```
 
-### Step 2: Firebase Setup
+### 2. Firebase Setup
 
-1. Go to [Firebase Console](https://console.firebase.google.com/)
-2. Create a new project or use existing one
-3. Enable **Authentication**:
-   - Go to Authentication > Sign-in method
-   - Enable "Email/Password" provider
-4. Enable **Firestore Database**:
-   - Go to Firestore Database
-   - Create database in production mode
-   - Choose a location closest to you
+1. Go to [Firebase Console](https://console.firebase.google.com/) → Create/select project
+2. **Authentication** → Sign-in method → Enable **Google** provider
+3. **Firestore Database** → Create database in production mode
+4. **Authentication** → Settings → **Authorized domains** → Add your deployment domain
 
-### Step 3: Get Firebase Configuration
+### 3. Environment Variables
 
-1. In Firebase Console, go to Project Settings (gear icon)
-2. Scroll down to "Your apps" section
-3. Click on Web icon (`</>`) to create a web app
-4. Register your app with a nickname (e.g., "Expense Tracker")
-5. Copy the configuration values
+Create a `.env` file in the project root:
 
-### Step 4: Configure Environment Variables
-
-1. Copy the example environment file:
-   ```bash
-   copy .env.example .env
-   ```
-
-2. Edit `.env` file and add your Firebase configuration:
-   ```env
-   VITE_FIREBASE_API_KEY=your_api_key_here
-   VITE_FIREBASE_AUTH_DOMAIN=your_project_id.firebaseapp.com
-   VITE_FIREBASE_PROJECT_ID=your_project_id
-   VITE_FIREBASE_STORAGE_BUCKET=your_project_id.appspot.com
-   VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-   VITE_FIREBASE_APP_ID=your_app_id
-   ```
-
-### Step 5: Deploy Firestore Security Rules
-
-1. Install Firebase CLI:
-   ```bash
-   npm install -g firebase-tools
-   ```
-
-2. Login to Firebase:
-   ```bash
-   firebase login
-   ```
-
-3. Initialize Firebase in your project:
-   ```bash
-   firebase init firestore
-   ```
-   - Select your Firebase project
-   - Accept the default `firestore.rules` file
-   - Accept the default `firestore.indexes.json` file
-
-4. Deploy the security rules:
-   ```bash
-   firebase deploy --only firestore:rules
-   ```
-
-### Step 6: Create Admin User
-
-Since the security rules require an admin to create users, you need to manually create the first admin user:
-
-1. Run the development server:
-   ```bash
-   npm run dev
-   ```
-
-2. Temporarily modify the security rules in Firebase Console to allow user creation:
-   ```javascript
-   match /users/{userId} {
-     allow create: if isAuthenticated(); // Temporarily allow any authenticated user
-   }
-   ```
-
-3. Sign up through the app (it will fail to create user doc, but will create auth user)
-
-4. Go to Firebase Console > Firestore Database
-
-5. Manually create a document in the `users` collection:
-   - Document ID: (your Firebase Auth UID - found in Authentication > Users)
-   - Fields:
-     ```
-     uid: (your Firebase Auth UID)
-     email: (your email)
-     role: "admin"
-     createdAt: (current timestamp)
-     ```
-
-6. Restore the original security rules (deploy `firestore.rules` again)
-
-7. Create viewer account for your father:
-   - Use the same signup process
-   - Manually set role to "viewer" in Firestore
-
-**Alternative Method**: Use Firebase Admin SDK or Cloud Functions to create users programmatically.
-
-## 🚀 Development
-
-Start the development server:
-
-```bash
-npm run dev
+```env
+VITE_FIREBASE_API_KEY=your_api_key
+VITE_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+VITE_FIREBASE_PROJECT_ID=your_project_id
+VITE_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+VITE_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+VITE_FIREBASE_APP_ID=your_app_id
 ```
 
-The app will open at `http://localhost:3000`
+### 4. Create Admin User
 
-## 📦 Production Build
+1. Start the dev server: `npm run dev`
+2. Sign in with Google
+3. Go to Firebase Console → **Firestore** → `users` collection
+4. Find your user document (ID = your Auth UID)
+5. Set the `role` field to `"admin"`
+
+### 5. Run
 
 ```bash
-npm run build
+npm run dev        # Development server at http://localhost:5173
+npm run build      # Production build
+npm run preview    # Preview production build
 ```
 
-Preview the production build:
+---
 
-```bash
-npm run preview
-```
+## 🌐 Deployment (Vercel)
 
-## 🌐 Deployment
+This project auto-deploys to Vercel on every push to `main`.
 
-### Deploy to Vercel
+### Manual Setup
 
-1. Install Vercel CLI:
-   ```bash
-   npm install -g vercel
-   ```
+1. Import the GitHub repo in [Vercel Dashboard](https://vercel.com)
+2. Add all `VITE_FIREBASE_*` environment variables in Vercel → Project Settings → Environment Variables
+3. Add your Vercel domain to Firebase → Authentication → Settings → **Authorized domains**
 
-2. Deploy:
-   ```bash
-   vercel
-   ```
+The included `vercel.json` handles SPA client-side routing (no 404 on refresh).
 
-3. Add environment variables in Vercel dashboard:
-   - Go to Project Settings > Environment Variables
-   - Add all `VITE_FIREBASE_*` variables
+---
 
-### Deploy to Firebase Hosting
+## 📊 Database Schema
 
-1. Install Firebase CLI (if not already installed):
-   ```bash
-   npm install -g firebase-tools
-   ```
-
-2. Build the project:
-   ```bash
-   npm run build
-   ```
-
-3. Initialize Firebase Hosting:
-   ```bash
-   firebase init hosting
-   ```
-   - Select your project
-   - Set `dist` as the public directory
-   - Configure as single-page app: Yes
-   - Don't overwrite index.html
-
-4. Deploy:
-   ```bash
-   firebase deploy --only hosting
-   ```
-
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed deployment instructions.
-
-## 📱 Usage
-
-### Admin User (You)
-- Login with admin credentials
-- Add new expenses with amount, category, description, and date
-- View dashboard with real-time updates
-- See analytics with charts
-- Download monthly PDF reports
-- Delete expenses
-
-### Viewer User (Father)
-- Login with viewer credentials
-- View all expenses in real-time
-- See dashboard statistics
-- View analytics and charts
-- Download PDF reports
-- Cannot add, edit, or delete expenses
-
-## 🔒 Security
-
-- All data is protected by Firestore security rules
-- Only authenticated users can access data
-- Admins can write, viewers can only read
-- Firebase handles authentication securely
-- Environment variables keep sensitive config private
-
-## 📊 Database Structure
-
-### Users Collection
-```javascript
+### `users` Collection
+```js
 {
-  uid: string,
-  email: string,
-  role: "admin" | "viewer",
-  createdAt: timestamp
+  uid: string,           // Firebase Auth UID
+  email: string,         // User email
+  displayName: string,   // Editable display name
+  photoURL: string,      // Profile photo (base64 data URL)
+  role: "admin" | "user" | "viewer",
+  viewerEmails: string[],// Emails this user shares with
+  createdAt: timestamp,
+  updatedAt: timestamp
 }
 ```
 
-### Expenses Collection
-```javascript
+### `expenses` Collection
+```js
 {
   amount: number,
   category: "Food" | "Travel" | "Recharge" | "Shopping" | "Other",
+  type: "personal" | "lent" | "borrowed",
   description: string,
-  date: string (YYYY-MM-DD),
+  date: string,          // YYYY-MM-DD
   createdAt: timestamp,
-  createdBy: string (user uid)
+  createdBy: string      // User UID
 }
 ```
 
-## 🎨 Features Overview
-
-1. **Dashboard**: Monthly total, today's spending, category breakdown, expense list
-2. **Add Expense**: Form with validation and success feedback
-3. **Analytics**: Pie chart (categories), Bar chart (daily trend), summary table
-4. **PDF Export**: Professional monthly reports with all details
-5. **Month Filter**: Navigate between months easily
-6. **Real-time Sync**: Changes reflect immediately on all devices
+---
 
 ## 🐛 Troubleshooting
 
-### Firebase Authentication Errors
-- Ensure Email/Password provider is enabled in Firebase Console
-- Check that Firebase config in `.env` is correct
+| Problem | Solution |
+|---------|----------|
+| Google sign-in popup closes immediately | Add your domain to Firebase → Auth → Authorized domains |
+| 404 on page refresh (Vercel) | Ensure `vercel.json` exists with SPA rewrites |
+| Permission denied on Firestore | Check user doc exists in `users` collection with correct `role` |
+| Profile photo stuck on "Uploading" | Photo is stored as base64 in Firestore — no Firebase Storage setup needed |
+| Build errors | Run `rm -rf node_modules && npm install` then `npm run build` |
 
-### Firestore Permission Denied
-- Verify security rules are deployed correctly
-- Make sure user document exists in `users` collection with correct role
-- Check that user is authenticated
-
-### Build Errors
-- Clear node_modules and reinstall: `rm -rf node_modules && npm install`
-- Clear Vite cache: `rm -rf node_modules/.vite`
-
-### Charts Not Displaying
-- Check that expenses exist for the selected month
-- Verify Chart.js components are registered correctly
+---
 
 ## 📄 License
 
-This project is private and for personal use only.
+Private project — for personal use.
 
 ## 👨‍💻 Author
 
-Built with ❤️ for personal expense tracking
-
-## 🤝 Support
-
-For issues or questions, please check:
-1. Firebase Console for authentication/database errors
-2. Browser console for JavaScript errors
-3. Network tab for API call failures
+Built by [Adarsh Gupta](https://github.com/adarsh-gupta-01)
