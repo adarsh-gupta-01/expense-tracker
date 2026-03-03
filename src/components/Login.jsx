@@ -1,193 +1,266 @@
-import React, { useEffect, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
-import { FaUser, FaLock, FaEye, FaEyeSlash } from 'react-icons/fa';
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
+import logo from "./logo.png";
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
-  
-  const { login, currentUser } = useAuth();
+  const { signInWithGoogle, currentUser } = useAuth();
   const navigate = useNavigate();
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
   useEffect(() => {
-    if (currentUser) {
-      navigate('/', { replace: true });
-    }
+    if (currentUser) navigate("/", { replace: true });
   }, [currentUser, navigate]);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Validation
-    if (!email || !password) {
-      setError('Please fill in all fields');
-      return;
-    }
-
+  const handleGoogleSignIn = async () => {
     try {
-      setError('');
+      setError("");
       setLoading(true);
-      await login(email, password);
-      navigate('/', { replace: true });
-    } catch (error) {
-      console.error('Login error:', error);
-      
-      // User-friendly error messages
-      switch (error.code) {
-        case 'auth/user-not-found':
-          setError('No account found with this email');
-          break;
-        case 'auth/wrong-password':
-          setError('Incorrect password');
-          break;
-        case 'auth/invalid-email':
-          setError('Invalid email address');
-          break;
-        case 'auth/user-disabled':
-          setError('This account has been disabled');
-          break;
-        case 'auth/invalid-credential':
-          setError('Invalid email or password');
-          break;
-        default:
-          setError('Failed to sign in. Please try again.');
-      }
+      await signInWithGoogle();
+      navigate("/", { replace: true });
+    } catch {
+      setError("Unable to sign in. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-white px-4">
-      <div className="max-w-md w-full">
-        {/* Logo/Title Section */}
-        <div className="text-center mb-8">
-          <div className="inline-block p-4 bg-white rounded-full border border-black mb-4">
-            <svg 
-              className="w-12 h-12 text-black" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path 
-                strokeLinecap="round" 
-                strokeLinejoin="round" 
-                strokeWidth={2} 
-                d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
-              />
-            </svg>
-          </div>
-          <h1 className="text-4xl font-bold text-black mb-2">Expense Tracker</h1>
-          <p className="text-gray-700">Sign in to manage your expenses</p>
-        </div>
+    <>
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
-        {/* Login Form */}
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+
+        body {
+          font-family: 'Inter', sans-serif;
+          background: #f4f4f5;
+          min-height: 100vh;
+        }
+
+        .login-container {
+          min-height: 100vh;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 24px;
+          animation: fadeIn 0.6s ease forwards;
+        }
+
+        @keyframes fadeIn {
+          from { opacity: 0; transform: translateY(20px); }
+          to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+          width: 100%;
+          max-width: 540px;
+          background: #ffffff;
+          border-radius: 26px;
+          padding: 40px 36px;
+          border: 1px solid #e5e7eb;
+          box-shadow: 0 30px 80px rgba(0, 0, 0, 0.06);
+          transition: 0.3s ease;
+        }
+
+        .card:hover {
+          transform: translateY(-4px);
+          box-shadow: 0 40px 100px rgba(0, 0, 0, 0.08);
+        }
+
+        .logo {
+          width: clamp(180px, 50vw, 280px);
+          max-width: 100%;
+          height: auto;
+          display: block;
+          margin: 0 auto 16px;
+        }
+
+        .title {
+          font-size: 28px;
+          font-weight: 700;
+          color: #111;
+          text-align: center;
+          margin-bottom: 10px;
+        }
+
+        .subtitle {
+          font-size: 15px;
+          color: #6b7280;
+          text-align: center;
+          margin-bottom: 32px;
+          line-height: 1.6;
+        }
+
+        /* AUTHENTIC GOOGLE BUTTON */
+        .google-btn {
+          width: 100%;
+          height: 58px;
+          border-radius: 14px;
+          border: 1px solid #dadce0;
+          background: #ffffff;
+          color: #3c4043;
+          font-size: 15.5px;
+          font-weight: 500;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          gap: 14px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+        }
+
+        .google-btn:hover:not(:disabled) {
+          background: #f8f9fa;
+          box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .google-btn:active:not(:disabled) {
+          background: #f1f3f4;
+        }
+
+        .google-btn:disabled {
+          opacity: 0.7;
+          cursor: not-allowed;
+        }
+
+        .spinner {
+          width: 18px;
+          height: 18px;
+          border: 2.5px solid #e0e0e0;
+          border-top: 2.5px solid #4285f4;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+
+        .features {
+          margin-top: 28px;
+          display: grid;
+          gap: 12px;
+          font-size: 14.5px;
+          color: #374151;
+        }
+
+        .feature-item {
+          display: flex;
+          align-items: center;
+          gap: 10px;
+        }
+
+        .feature-item svg {
+          width: 18px;
+          height: 18px;
+          color: #22c55e;
+          flex-shrink: 0;
+        }
+
+        .error {
+          margin-top: 18px;
+          padding: 12px;
+          background: #fef2f2;
+          color: #dc2626;
+          border-radius: 10px;
+          text-align: center;
+          font-size: 14px;
+        }
+
+        .footer {
+          margin-top: 30px;
+          text-align: center;
+          font-size: 13px;
+          color: #9ca3af;
+        }
+
+        @media (max-width: 480px) {
+          .card {
+            padding: 32px 22px;
+          }
+
+          .logo {
+            width: clamp(150px, 55vw, 220px);
+            margin-bottom: 12px;
+          }
+
+          .title {
+            font-size: 24px;
+          }
+        }
+      `}</style>
+
+      <div className="login-container">
         <div className="card">
-          <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Error Message */}
-            {error && (
-              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center">
-                <svg className="w-5 h-5 mr-2" fill="currentColor" viewBox="0 0 20 20">
-                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-                </svg>
-                <span className="text-sm">{error}</span>
-              </div>
+          <img src={logo} alt="Expense Tracker Logo" className="logo" />
+
+          <div className="title">Welcome Back</div>
+          <div className="subtitle">
+            Securely track expenses, split bills, and get powerful insights instantly.
+          </div>
+
+          <button
+            className="google-btn"
+            onClick={handleGoogleSignIn}
+            disabled={loading}
+          >
+            {loading ? (
+              <div className="spinner" />
+            ) : (
+              <>
+                <img
+                  src="https://www.svgrepo.com/show/475656/google-color.svg"
+                  alt="Google"
+                  width="22"
+                  height="22"
+                />
+                Continue with Google
+              </>
             )}
+          </button>
 
-            {/* Email Field */}
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
-                Email Address
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaUser className="text-gray-400" />
-                </div>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="input-field pl-10"
-                  placeholder="you@example.com"
-                  disabled={loading}
-                  autoComplete="email"
-                />
-              </div>
+          {error && <div className="error">{error}</div>}
+
+          <div className="features">
+            <div className="feature-item">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Know exactly where your money goes every month
             </div>
-
-            {/* Password Field */}
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <FaLock className="text-gray-400" />
-                </div>
-                <input
-                  id="password"
-                  type={showPassword ? 'text' : 'password'}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-field pl-10 pr-10"
-                  placeholder="••••••••"
-                  disabled={loading}
-                  autoComplete="current-password"
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute inset-y-0 right-0 pr-3 flex items-center"
-                  disabled={loading}
-                >
-                  {showPassword ? (
-                    <FaEyeSlash className="text-gray-400 hover:text-gray-600" />
-                  ) : (
-                    <FaEye className="text-gray-400 hover:text-gray-600" />
-                  )}
-                </button>
-              </div>
+            <div className="feature-item">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Share and track expenses with family
             </div>
+            <div className="feature-item">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Beautiful, clean spending insights
+            </div>
+            <div className="feature-item">
+              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+              </svg>
+              Never lose track of borrowed money
+            </div>
+          </div>
 
-            {/* Submit Button */}
-            <button
-              type="submit"
-              disabled={loading}
-              className="btn-primary w-full flex items-center justify-center space-x-2"
-            >
-              {loading ? (
-                <>
-                  <div className="spinner border-2 border-white border-t-transparent w-5 h-5"></div>
-                  <span>Signing in...</span>
-                </>
-              ) : (
-                <span>Sign In</span>
-              )}
-            </button>
-          </form>
-
-          {/* Info Section */}
-          <div className="mt-6 pt-6 border-t border-gray-200">
-            <p className="text-sm text-gray-600 text-center">
-              New user?{' '}
-              <Link to="/signup" className="text-primary-600 font-medium hover:underline">
-                Create an account
-              </Link>
-            </p>
+          <div className="footer">
+            © 2026 Expense Tracker
           </div>
         </div>
-
-        {/* Footer */}
-        <p className="text-center text-gray-600 text-sm mt-6">
-          © 2026 Expense Tracker. All rights reserved.
-        </p>
       </div>
-    </div>
+    </>
   );
 };
 

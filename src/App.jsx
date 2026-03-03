@@ -3,7 +3,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Sidebar from './components/Sidebar';
 import Login from './components/Login';
-import Signup from './components/Signup';
 import Dashboard from './components/Dashboard';
 import AddExpense from './components/AddExpense';
 import Analytics from './components/Analytics';
@@ -36,11 +35,7 @@ const LoginRoute = () => {
 };
 
 const SignupRoute = () => {
-  const { currentUser } = useAuth();
-  if (currentUser) {
-    return <Navigate to="/" replace />;
-  }
-  return <Signup />;
+  return <Navigate to="/login" replace />;
 };
 
 // Main App Component

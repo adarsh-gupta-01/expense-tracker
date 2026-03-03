@@ -1,12 +1,15 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { FaCamera, FaUserCircle } from 'react-icons/fa';
 
 const Profile = () => {
-  const { currentUser, userProfile, updateProfile } = useAuth();
+  const { currentUser, userProfile, updateProfile, updateProfilePhoto } = useAuth();
   const [displayName, setDisplayName] = useState('');
   const [saving, setSaving] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
+  const fileInputRef = useRef(null);
 
   useEffect(() => {
     setDisplayName(userProfile?.displayName || '');
@@ -29,6 +32,35 @@ const Profile = () => {
     }
   };
 
+  const handlePhotoChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file
+    if (!file.type.startsWith('image/')) {
+      setError('Please select an image file.');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Image must be smaller than 5MB.');
+      return;
+    }
+
+    setUploadingPhoto(true);
+    setMessage('');
+    setError('');
+
+    try {
+      await updateProfilePhoto(file);
+      setMessage('Profile photo updated!');
+    } catch (uploadError) {
+      console.error(uploadError);
+      setError('Unable to upload photo. Please try again.');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
   return (
     <div className="fade-in pt-20 lg:pt-4 w-full">
       <div className="px-4 sm:px-6 lg:px-8 py-4 lg:py-8 max-w-3xl lg:max-w-4xl">
@@ -38,6 +70,44 @@ const Profile = () => {
         </div>
 
         <div className="card">
+          {/* Profile Photo Section */}
+          <div className="flex flex-col items-center mb-6">
+            <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              {userProfile?.photoURL ? (
+                <img
+                  src={userProfile.photoURL}
+                  alt="Profile"
+                  className="w-24 h-24 rounded-full object-cover border-2 border-gray-200"
+                />
+              ) : (
+                <FaUserCircle className="w-24 h-24 text-gray-300" />
+              )}
+              <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-200">
+                <FaCamera className="text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200 text-xl" />
+              </div>
+              {uploadingPhoto && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black bg-opacity-50">
+                  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                </div>
+              )}
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handlePhotoChange}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="mt-3 text-sm text-blue-600 hover:text-blue-800 font-medium"
+              disabled={uploadingPhoto}
+            >
+              {uploadingPhoto ? 'Uploading...' : 'Change Photo'}
+            </button>
+          </div>
+
           <form onSubmit={handleSubmit} className="space-y-5">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Email</label>

@@ -1,11 +1,6 @@
 /* eslint-disable react-refresh/only-export-components */
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { 
-  signInWithEmailAndPassword, 
-  signOut, 
-  onAuthStateChanged,
-  createUserWithEmailAndPassword 
-} from 'firebase/auth';
+import { GoogleAuthProvider, onAuthStateChanged, signInWithPopup, signOut } from 'firebase/auth';
 import { doc, getDoc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
 import { auth, db } from '../config/firebase';
 
@@ -30,28 +25,42 @@ export const AuthProvider = ({ children }) => {
   const [roleLoaded, setRoleLoaded] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  // Sign up new user
-  const signup = async (email, password, displayName) => {
-    const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-    const user = userCredential.user;
-    
-    // Create user document in Firestore
-    await setDoc(doc(db, 'users', user.uid), {
-      uid: user.uid,
-      email: user.email,
-      displayName: (displayName || '').trim(),
-      role: 'user',
-      viewerEmails: [],
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
-    });
-    
-    return userCredential;
-  };
+  const googleProvider = new GoogleAuthProvider();
+  googleProvider.setCustomParameters({ prompt: 'select_account' });
 
-  // Sign in existing user
-  const login = async (email, password) => {
-    return await signInWithEmailAndPassword(auth, email, password);
+  // Sign in / sign up with Google
+  const signInWithGoogle = async () => {
+    const userCredential = await signInWithPopup(auth, googleProvider);
+    const user = userCredential.user;
+    const userRef = doc(db, 'users', user.uid);
+    const userDoc = await getDoc(userRef);
+
+    if (userDoc.exists()) {
+      const existingData = userDoc.data();
+      const updates = {
+        email: user.email || '',
+        displayName: (user.displayName || '').trim(),
+        updatedAt: serverTimestamp(),
+      };
+      // Only set Google photoURL if user hasn't uploaded a custom one
+      if (!existingData.photoURL && user.photoURL) {
+        updates.photoURL = user.photoURL;
+      }
+      await updateDoc(userRef, updates);
+    } else {
+      await setDoc(userRef, {
+        uid: user.uid,
+        email: user.email || '',
+        displayName: (user.displayName || '').trim(),
+        photoURL: user.photoURL || '',
+        role: 'user',
+        viewerEmails: [],
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+
+    return userCredential;
   };
 
   // Sign out user
@@ -75,6 +84,7 @@ export const AuthProvider = ({ children }) => {
           uid,
           email: data.email || email || '',
           displayName: data.displayName || '',
+          photoURL: data.photoURL || '',
           role: normalizeRole(data.role),
           viewerEmails: Array.isArray(data.viewerEmails) ? data.viewerEmails : [],
         };
@@ -85,6 +95,7 @@ export const AuthProvider = ({ children }) => {
         uid,
         email: email || '',
         displayName: '',
+        photoURL: '',
         role: 'user',
         viewerEmails: [],
       };
@@ -117,6 +128,40 @@ export const AuthProvider = ({ children }) => {
     await refreshUserProfile();
   };
 
+  const updateProfilePhoto = async (file) => {
+    if (!currentUser || !file) return;
+
+    // Compress and convert to base64 data URL (stored in Firestore directly)
+    const dataURL = await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const MAX = 200; // max dimension in px
+          let w = img.width, h = img.height;
+          if (w > h) { h = Math.round(h * MAX / w); w = MAX; }
+          else { w = Math.round(w * MAX / h); h = MAX; }
+          canvas.width = w;
+          canvas.height = h;
+          canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+          resolve(canvas.toDataURL('image/jpeg', 0.8));
+        };
+        img.onerror = reject;
+        img.src = e.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+
+    await updateDoc(doc(db, 'users', currentUser.uid), {
+      photoURL: dataURL,
+      updatedAt: serverTimestamp(),
+    });
+    await refreshUserProfile();
+    return dataURL;
+  };
+
   // Listen to auth state changes
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -145,11 +190,11 @@ export const AuthProvider = ({ children }) => {
     currentUser,
     userRole,
     userProfile,
-    signup,
-    login,
+    signInWithGoogle,
     logout,
     refreshUserProfile,
     updateProfile,
+    updateProfilePhoto,
     roleLoaded,
     isAdmin: userRole === 'admin' || userRole === 'user',
     isViewer: userRole === 'viewer'
